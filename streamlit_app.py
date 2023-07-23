@@ -6,7 +6,9 @@ import soundfile as sf
 from io import BytesIO
 
 # Create a dropdown to select the model
-model_name = st.selectbox("Select a model", ["base", "small", "medium", "large", "large-v2"])
+model_options = ["base", "small", "medium", "large", "large-v2"]
+default_model = "medium"
+model_name = st.selectbox("Select a model", options=model_options, index=model_options.index(default_model))
 
 # Load the selected model
 model = stable_whisper.load_model(model_name)
