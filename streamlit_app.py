@@ -1,38 +1,33 @@
-from collections import namedtuple
-import altair as alt
-import math
-import pandas as pd
 import streamlit as st
+import stable_whisper
+import json
+import torch
+import soundfile as sf
+from io import BytesIO
 
-"""
-# Welcome to Streamlit!
+# Create a dropdown to select the model
+model_name = st.selectbox("Select a model", ["base", "small", "medium", "large", "large-v2"])
 
-Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:
+# Load the selected model
+model = stable_whisper.load_model(model_name)
 
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
+# Create a file uploader for the audio file
+audiofile = st.file_uploader("Upload an audio file", type=["mp3", "wav"])
 
-In the meantime, below is an example of what you can do with just a few lines of code:
-"""
-
-
-with st.echo(code_location='below'):
-    total_points = st.slider("Number of points in spiral", 1, 5000, 2000)
-    num_turns = st.slider("Number of turns in spiral", 1, 100, 9)
-
-    Point = namedtuple('Point', 'x y')
-    data = []
-
-    points_per_turn = total_points / num_turns
-
-    for curr_point_num in range(total_points):
-        curr_turn, i = divmod(curr_point_num, points_per_turn)
-        angle = (curr_turn + 1) * 2 * math.pi * i / points_per_turn
-        radius = curr_point_num / total_points
-        x = radius * math.cos(angle)
-        y = radius * math.sin(angle)
-        data.append(Point(x, y))
-
-    st.altair_chart(alt.Chart(pd.DataFrame(data), height=500, width=500)
-        .mark_circle(color='#0068c9', opacity=0.5)
-        .encode(x='x:Q', y='y:Q'))
+# Create a button to run the prediction
+if st.button('Transcribe'):
+    if audiofile is not None:
+        # Read the audio file into a numpy array
+        audio_data, _ = sf.read(BytesIO(audiofile.read()))
+        # Convert the audio data to float
+        audio_data = torch.from_numpy(audio_data).float()
+        # Transcribe the audio file
+        result = model.transcribe(audio_data)
+        # Convert the result to JSON and display it
+        if isinstance(result, stable_whisper.WhisperResult):
+            result_json = result.to_dict()  # replace with actual method if exists
+        else:
+            result_json = json.loads(result)
+        st.json(result_json)
+    else:
+        st.write("Please upload an audio file.")
